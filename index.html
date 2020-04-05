@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="UTF-8"/> 
+	<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />	
+	<title>En-Ru Translator</title>
+	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+	<style>
+		* {margin: 0; padding: 0; font-size: 16px;} 
+		html, body { padding: 0; margin: 0; height: 100%;}
+		
+		body {padding: 20px; box-sizing: border-box;}
+		#word {border: none; border-bottom: 1px solid #bbb; text-align: center; font-size: 24px; display: block; width: 100%;}
+		#wrapper {text-align: center;}		
+		#translations {padding: 10px; display: inline-table;}
+		#translations li {text-align: left;}
+		#error {color: red;}	
+	</style>
+
+	<script type="text/javascript">
+		window.addEventListener('load', function() {
+			if (typeof webkitSpeechRecognition == 'undefined')
+				return alert('Speech recognition is not supported. Use Chrome.');
+				
+			var $word = document.getElementById('word');
+			var $translations = document.getElementById('translations');
+			var $error = document.getElementById('error');
+			
+			function translate(word) {
+				fetch('https://disk.team/translate.php?word=' + word, { 
+					mode: 'cors',
+					headers: {'Content-Type': 'application/json'}
+					})
+					.then(res => res.json())
+					.then(function (res) {
+						$word.value = word;
+						$translations.innerHTML = res.map(e => `<li>${e}</li>`).join('');
+						$error.innerHTML = '';
+					})
+					.catch(function (err) {
+						$word.value = word;
+						$translations.innerHTML = '';
+						$error.innerHTML = err.message;
+					}) 		
+			} 
+			
+			$word.addEventListener('keyup', event => translate($word.value));
+			
+			navigator.mediaDevices.getUserMedia({audio: true}).then (function (stream) {
+				var recognition = new webkitSpeechRecognition();
+				recognition.continuous = false;
+				recognition.interimResults = false;
+				recognition.lang = 'en-US';
+		
+				recognition.onresult = event => translate(event.results[0][0].transcript);		
+				recognition.onerror = err => $error.innerHTML = err.message;
+				recognition.onend = () => recognition.start();
+				
+				recognition.start();
+			}).catch((err) => alert(err.message));
+		});	
+	</script>
+</head>
+<body>
+	<input id = "word">
+	<div id = "wrapper">
+		<ul id = "translations"></ul>
+		<div id = "error"></div>	
+	</div>
+</body>
+</html>
