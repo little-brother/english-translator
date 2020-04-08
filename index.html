@@ -15,7 +15,9 @@
 		#wrapper {text-align: center;}		
 		#translations {padding: 10px; display: inline-table;}
 		#translations li {text-align: left;}
-		#error {color: red;}	
+		#error {color: red;}
+		#button {width: 100px; height: 100px; border-radius: 50%; background: cornflowerblue; color: white; position: absolute; bottom: 20px; left: 50%; margin-left: -50px;}
+		#button[hold] {opacity: 0.5;}	
 	</style>
 
 	<script type="text/javascript">
@@ -26,6 +28,7 @@
 			var $word = document.getElementById('word');
 			var $translations = document.getElementById('translations');
 			var $error = document.getElementById('error');
+			var $button = document.getElementById('button');
 			
 			function translate(word) {
 				fetch('https://disk.team/translate.php?word=' + word, { 
@@ -47,17 +50,31 @@
 			
 			$word.addEventListener('change', event => translate($word.value));
 			
+			var recognition = new webkitSpeechRecognition();			
+			recognition.continuous = true;
+			recognition.interimResults = false;
+			recognition.lang = 'en';
+			
+			function start() {
+				recognition.start();
+				$button.setAttribute('hold', true);
+			}
+			
+			function stop () {
+				recognition.stop();
+				$button.removeAttribute('hold');			
+			}
+				
 			navigator.mediaDevices.getUserMedia({audio: true}).then (function (stream) {
-				var recognition = new webkitSpeechRecognition();
-				recognition.continuous = false;
-				recognition.interimResults = false;
-				recognition.lang = 'en';
-		
+				$button.addEventListener('mousedown', start);
+				$button.addEventListener('touchstart', start);
+
+				$button.addEventListener('mouseup', stop);
+				$button.addEventListener('touchend', stop);
+				
 				recognition.onresult = event => translate(event.results[0][0].transcript);		
 				recognition.onerror = err => $error.innerHTML = err.message;
-				recognition.onend = () => recognition.start();
 				
-				recognition.start();
 			}).catch((err) => alert(err.message));
 		});	
 	</script>
@@ -68,5 +85,6 @@
 		<ul id = "translations"></ul>
 		<div id = "error"></div>	
 	</div>
+	<div id = "button"></div>
 </body>
 </html>
