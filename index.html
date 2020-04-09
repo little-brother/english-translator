@@ -29,7 +29,13 @@
 			var $translations = document.getElementById('translations');
 			var $error = document.getElementById('error');
 			var $button = document.getElementById('button');
-			
+			var voice;
+			var getVoice = () => voice = speechSynthesis && speechSynthesis.getVoices().find(v => v.lang.indexOf('en-GB') == 0);
+			if (speechSynthesis && speechSynthesis.onvoiceschanged) 
+				speechSynthesis.onvoiceschanged = getVoice;
+			else 
+				getVoice();	
+				
 			function translate(word) {
 				fetch('https://disk.team/translate.php?word=' + word, { 
 					mode: 'cors',
@@ -46,9 +52,18 @@
 						$translations.innerHTML = '';
 						$error.innerHTML = err.message;
 					}) 		
-			} 
+			}
 			
-			$word.addEventListener('change', event => translate($word.value));
+			function speak(word) {
+				var utterance = new SpeechSynthesisUtterance(word);
+				utterance.voice = voice;
+				utterance.rate = 0.8;
+				speechSynthesis.speak(utterance);	
+			}
+			
+			var translateAndSpeak = word => translate(word) || voice && speak(word);
+			
+			$word.addEventListener('change', event => translateAndSpeak($word.value));
 			
 			var recognition = new webkitSpeechRecognition();			
 			recognition.continuous = true;
@@ -64,15 +79,17 @@
 				recognition.stop();
 				$button.removeAttribute('hold');			
 			}
-				
+			
 			navigator.mediaDevices.getUserMedia({audio: true}).then (function (stream) {
+				$button.removeAttribute('hidden');
+				$error.innerHTML = '';	
 				$button.addEventListener('mousedown', start);
 				$button.addEventListener('touchstart', start);
 
 				$button.addEventListener('mouseup', stop);
 				$button.addEventListener('touchend', stop);
 				
-				recognition.onresult = event => translate(event.results[0][0].transcript);		
+				recognition.onresult = event => translateAndSpeak(event.results[0][0].transcript);
 				recognition.onerror = err => $error.innerHTML = err.message;
 				
 			}).catch((err) => alert(err.message));
@@ -83,8 +100,8 @@
 	<input id = "word">
 	<div id = "wrapper">
 		<ul id = "translations"></ul>
-		<div id = "error"></div>	
+		<div id = "error">Разрешите доступ к микрофону</div>	
 	</div>
-	<div id = "button"></div>
+	<div id = "button" hidden></div>
 </body>
 </html>
