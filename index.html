@@ -30,11 +30,6 @@
 			var $error = document.getElementById('error');
 			var $button = document.getElementById('button');
 			var voice;
-			var getVoice = () => voice = speechSynthesis && speechSynthesis.getVoices().find(v => v.lang.indexOf('en-GB') == 0);
-			if (speechSynthesis && speechSynthesis.onvoiceschanged) 
-				speechSynthesis.onvoiceschanged = getVoice;
-			else 
-				getVoice();	
 				
 			function translate(word) {
 				fetch('https://disk.team/translate.php?word=' + word, { 
@@ -45,7 +40,7 @@
 					.then(function (res) {
 						$word.value = word;
 						$translations.innerHTML = res.map(e => `<li>${e}</li>`).join('');
-						$error.innerHTML = '';
+						//$error.innerHTML = '';
 					})
 					.catch(function (err) {
 						$word.value = word;
@@ -55,13 +50,16 @@
 			}
 			
 			function speak(word) {
+				if (!voice)
+					voice = speechSynthesis && speechSynthesis.getVoices().find(v => v.lang == 'en-GB' || v.lang == 'en_GB');
+					
 				var utterance = new SpeechSynthesisUtterance(word);
 				utterance.voice = voice;
 				utterance.rate = 0.8;
 				speechSynthesis.speak(utterance);	
 			}
 			
-			var translateAndSpeak = word => translate(word) || voice && speak(word);
+			var translateAndSpeak = word => translate(word) || speak(word);
 			
 			$word.addEventListener('change', event => translateAndSpeak($word.value));
 			
